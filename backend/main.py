@@ -179,11 +179,6 @@ def get_overall_pt_schedule():
 # ----------------------------
 @app.post("/patients/{patient_name}/injury_questionnaire")
 async def add_injury_questionnaire(patient_name: str, questionnaire: InjuryQuestionnaire):
-    """
-    Save an injury questionnaire for a patient, and use Claude 3.5 to generate a preliminary diagnosis.
-    If the patient does not exist, a new record is created.
-    """
-    # Log request details (for debugging purposes)
     print(f"Received questionnaire for patient: {patient_name}")
     print(f"Questionnaire data: {questionnaire.dict()}")
     
@@ -201,14 +196,15 @@ async def add_injury_questionnaire(patient_name: str, questionnaire: InjuryQuest
         diagnosis_result = generate_diagnosis(injury_data)
         print(f"Diagnosis received: {diagnosis_result}")
         
-        # Merge diagnosis into injury data before saving
         injury_data.update(diagnosis_result)
         patients_db[patient_name]["injuries"].append(injury_data)
         return diagnosis_result
 
     except Exception as e:
-        print(f"Error during diagnosis generation: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error generating diagnosis: {str(e)}")
+        error_message = f"Error during diagnosis generation: {str(e)}"
+        print(error_message)
+        raise HTTPException(status_code=500, detail=error_message)
+
 
 @app.get("/patients/{patient_name}/injuries")
 def get_patient_injuries(patient_name: str):
