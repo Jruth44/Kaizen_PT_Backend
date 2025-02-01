@@ -179,9 +179,10 @@ def get_overall_pt_schedule():
 # ----------------------------
 @app.post("/patients/{patient_name}/injury_questionnaire")
 async def add_injury_questionnaire(patient_name: str, questionnaire: InjuryQuestionnaire):
-    print(f"Received questionnaire for patient: {patient_name}")
-    print(f"Questionnaire data: {questionnaire.dict()}")
-    
+    print(f"Received questionnaire for patient: {patient_name}", flush=True)
+    print(f"Questionnaire data: {questionnaire.dict()}", flush=True)
+
+
     if patient_name not in patients_db:
         print(f"Creating new patient record for: {patient_name}")
         patients_db[patient_name] = {
@@ -204,7 +205,6 @@ async def add_injury_questionnaire(patient_name: str, questionnaire: InjuryQuest
         error_message = f"Error during diagnosis generation: {str(e)}"
         print(error_message)
         raise HTTPException(status_code=500, detail=error_message)
-
 
 @app.get("/patients/{patient_name}/injuries")
 def get_patient_injuries(patient_name: str):
