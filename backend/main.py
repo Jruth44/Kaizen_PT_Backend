@@ -18,7 +18,7 @@ app = FastAPI(title="PT Exercise Planner API")
 # Enable CORS for local development; update allow_origins for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # TODO: Replace with your production frontend URL
+    allow_origins=["https://kaizen-pt-frontend.vercel.app"],  # TODO: Replace with your production frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
