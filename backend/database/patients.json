@@ -1,0 +1,20 @@
+{
+    "name": "John Doe",
+    "age": 35,
+    "injury_location": "Shoulder",
+    "injuries": [
+      {
+        "body_part": "Shoulder",
+        "hurting_description": "Pain in the anterior shoulder when lifting overhead",
+        "date_of_onset": "2025-01-20",
+        "severity_best": 2,
+        "severity_worst": 7,
+        "specialized_data": {
+          "special_tests": {
+            "hawkins_kennedy": true,
+            "neer": true
+          }
+        }
+      }
+    ]
+}
