@@ -11,15 +11,16 @@ def generate_exercises(patient_data: Dict, num_exercises: int) -> Dict:
     """
     Generate exercise recommendations using Anthropic's API.
     """
-    anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+    anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
     if not anthropic_api_key:
         print("Error: ANTHROPIC_API_KEY not set")
         return {}
 
-    client = Anthropic(api_key=anthropic_api_key)
+    # Initialize the client without any additional arguments
+    client = Anthropic()
     try:
         message = client.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-5-sonnet-20241022",
             max_tokens=10000,
             system=f"""You are an expert physical therapy assistant...
 Generate exactly {num_exercises} exercises.
@@ -54,7 +55,8 @@ def generate_diagnosis(injury_data: Dict) -> Dict:
     if not anthropic_api_key:
         raise ValueError("ANTHROPIC_API_KEY environment variable not set")
         
-    client = Anthropic(api_key=anthropic_api_key)
+    # Initialize the client without any additional arguments
+    client = Anthropic()
     injury_description = f"""
     Body Part: {injury_data.get('body_part')}
     Description: {injury_data.get('hurting_description')}
@@ -67,7 +69,7 @@ def generate_diagnosis(injury_data: Dict) -> Dict:
     """
     try:
         message = client.messages.create(
-            model="claude-3-sonnet-20240229",
+            model="claude-3-5-sonnet-20241022",
             max_tokens=10000,
             messages=[{
                 "role": "user",
