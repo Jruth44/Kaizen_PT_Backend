@@ -1,7 +1,6 @@
-# backend/services.py
 import json
 import os
-import anthropic
+from anthropic import Anthropic
 from typing import Dict
 from dotenv import load_dotenv
 
@@ -11,18 +10,16 @@ load_dotenv()
 def generate_exercises(patient_data: Dict, num_exercises: int) -> Dict:
     """
     Generate exercise recommendations using Anthropic's API.
-    NOTE: This is a placeholder implementation.
-    Future expansion might include more complex logic and error handling.
     """
     anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not anthropic_api_key:
         print("Error: ANTHROPIC_API_KEY not set")
         return {}
 
-    client = anthropic.Anthropic(api_key=anthropic_api_key)
+    client = Anthropic(api_key=anthropic_api_key)
     try:
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-sonnet-20240229",
             max_tokens=10000,
             system=f"""You are an expert physical therapy assistant...
 Generate exactly {num_exercises} exercises.
@@ -41,7 +38,7 @@ Provide output in the specified JSON format."""
             }]
         )
         # Parse the returned content as JSON
-        content = message.content if not isinstance(message.content, list) else message.content[0].text
+        content = message.content[0].text if isinstance(message.content, list) else message.content
         parsed = json.loads(content)
         return parsed
 
@@ -51,14 +48,13 @@ Provide output in the specified JSON format."""
 
 def generate_diagnosis(injury_data: Dict) -> Dict:
     """
-    Generate a preliminary diagnosis using Anthropic's API (Claude 3.5).
-    NOTE: This is a placeholder for a more robust diagnostic process.
+    Generate a preliminary diagnosis using Anthropic's API.
     """
     anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
     if not anthropic_api_key:
         raise ValueError("ANTHROPIC_API_KEY environment variable not set")
         
-    client = anthropic.Anthropic(api_key=anthropic_api_key)
+    client = Anthropic(api_key=anthropic_api_key)
     injury_description = f"""
     Body Part: {injury_data.get('body_part')}
     Description: {injury_data.get('hurting_description')}
@@ -71,7 +67,7 @@ def generate_diagnosis(injury_data: Dict) -> Dict:
     """
     try:
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-sonnet-20240229",
             max_tokens=10000,
             messages=[{
                 "role": "user",
@@ -91,7 +87,7 @@ Format your response as JSON:
 }}"""
             }]
         )
-        content = message.content if not isinstance(message.content, list) else message.content[0].text
+        content = message.content[0].text if isinstance(message.content, list) else message.content
         # Use regex to extract JSON from the response (in case extra text is included)
         import re
         json_match = re.search(r'\{[\s\S]*\}', content)
