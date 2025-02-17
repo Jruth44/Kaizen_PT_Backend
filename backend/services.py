@@ -7,6 +7,10 @@ from dotenv import load_dotenv
 # Load environment variables (make sure to create a .env file with your keys)
 load_dotenv()
 
+# Optionally remove proxy settings if they cause issues
+os.environ.pop('HTTP_PROXY', None)
+os.environ.pop('HTTPS_PROXY', None)
+
 def generate_exercises(patient_data: Dict, num_exercises: int) -> Dict:
     """
     Generate exercise recommendations using Anthropic's API.
@@ -16,8 +20,9 @@ def generate_exercises(patient_data: Dict, num_exercises: int) -> Dict:
         print("Error: ANTHROPIC_API_KEY not set")
         return {}
 
-    # Initialize the client without any additional arguments
-    client = Anthropic()
+    # Initialize the client with the API key
+    client = Anthropic(api_key=anthropic_api_key)
+    
     try:
         message = client.messages.create(
             model="claude-3-5-sonnet-20241022",
@@ -55,8 +60,9 @@ def generate_diagnosis(injury_data: Dict) -> Dict:
     if not anthropic_api_key:
         raise ValueError("ANTHROPIC_API_KEY environment variable not set")
         
-    # Initialize the client without any additional arguments
-    client = Anthropic()
+    # Initialize the client with the API key
+    client = Anthropic(api_key=anthropic_api_key)
+    
     injury_description = f"""
     Body Part: {injury_data.get('body_part')}
     Description: {injury_data.get('hurting_description')}
