@@ -26,7 +26,7 @@ def generate_exercises(patient_data: Dict, num_exercises: int) -> Dict:
     try:
         message = client.messages.create(
             model="claude-3-5-sonnet-20241022",
-            max_tokens=10000,
+            max_tokens=8192,
             system=f"""You are an expert physical therapy assistant...
 Generate exactly {num_exercises} exercises.
 Format all responses as a JSON object.""",
@@ -76,7 +76,7 @@ def generate_diagnosis(injury_data: Dict) -> Dict:
     try:
         message = client.messages.create(
             model="claude-3-5-sonnet-20241022",
-            max_tokens=10000,
+            max_tokens=8192,
             messages=[{
                 "role": "user",
                 "content": f"""Analyze the following injury data and provide:
