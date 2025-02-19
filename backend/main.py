@@ -13,12 +13,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-app = FastAPI(title="PT Exercise Planner API")
-
 # Enable CORS for local development; update allow_origins for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://kaizen-pt-frontend.vercel.app"],  # TODO: Replace with your production frontend URL
+    allow_origins=["https://kaizen-pt-frontend.vercel.app"],  # Replace with your production frontend URL as needed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,7 +28,6 @@ patients_db = {}
 # ----------------------------
 # Supabase Authentication Setup
 # ----------------------------
-# Retrieve the Supabase JWT secret from the environment.
 SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
 if not SUPABASE_JWT_SECRET:
     raise Exception("SUPABASE_JWT_SECRET environment variable must be set for JWT validation")
@@ -54,7 +51,6 @@ def get_current_user(authorization: str = Header(...)):
 def read_users_me(current_user: dict = Depends(get_current_user)):
     """
     Returns the current user's information after verifying the Supabase JWT token.
-    Use this endpoint to test that the token sent from the frontend is valid.
     """
     return current_user
 
@@ -178,42 +174,42 @@ def get_overall_pt_schedule():
 # Injury Questionnaire Endpoint
 # ----------------------------
 @app.post("/patients/{patient_name}/injury_questionnaire")
-async def add_injury_questionnaire(patient_name: str, questionnaire: InjuryQuestionnaire):
-    print(f"Received questionnaire for patient: {patient_name}", flush=True)
+async def add_injury_questionnaire(
+    patient_name: str,
+    questionnaire: InjuryQuestionnaire,
+    current_user: dict = Depends(get_current_user)
+):
+    # Use the authenticated user's email as the patient identifier.
+    user_email = current_user.get("email")
+    if not user_email:
+        raise HTTPException(status_code=400, detail="User email not found in token")
+    # Override the provided patient_name with the authenticated user's email.
+    patient_identifier = user_email
+    print(f"Received questionnaire for patient: {patient_identifier}", flush=True)
     print(f"Questionnaire data: {questionnaire.dict()}", flush=True)
 
-
-    if patient_name not in patients_db:
-        print(f"Creating new patient record for: {patient_name}")
-        patients_db[patient_name] = {
-            "name": patient_name,
+    if patient_identifier not in patients_db:
+        print(f"Creating new patient record for: {patient_identifier}", flush=True)
+        patients_db[patient_identifier] = {
+            "name": patient_identifier,
             "injuries": [],
             "weekly_schedule": create_weekly_schedule()
         }
 
     try:
         injury_data = questionnaire.dict()
-        print("Calling Anthropic (Claude 3.5) for diagnosis...")
+        print("Calling Anthropic (Claude 3.5) for diagnosis...", flush=True)
         diagnosis_result = generate_diagnosis(injury_data)
-        print(f"Diagnosis received: {diagnosis_result}")
+        print(f"Diagnosis received: {diagnosis_result}", flush=True)
         
         injury_data.update(diagnosis_result)
-        patients_db[patient_name]["injuries"].append(injury_data)
+        patients_db[patient_identifier]["injuries"].append(injury_data)
         return diagnosis_result
 
     except Exception as e:
         error_message = f"Error during diagnosis generation: {str(e)}"
-        print(error_message)
+        print(error_message, flush=True)
         raise HTTPException(status_code=500, detail=error_message)
-
-@app.get("/patients/{patient_name}/injuries")
-def get_patient_injuries(patient_name: str):
-    """
-    Return all injury assessments for a patient.
-    """
-    if patient_name not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    return patients_db[patient_name].get("injuries", [])
 
 # ----------------------------
 # Helper Functions for Database Persistence
