@@ -10,8 +10,11 @@ from models import PatientCreate, PatientUpdate, ExerciseRecommendationsRequest,
 from utils import load_patients, save_patients, create_weekly_schedule
 from services import generate_exercises, generate_diagnosis
 from dotenv import load_dotenv
+
 load_dotenv()
 
+# Create the FastAPI app instance before using it
+app = FastAPI(title="PT Exercise Planner API")
 
 # Enable CORS for local development; update allow_origins for production
 app.add_middleware(
