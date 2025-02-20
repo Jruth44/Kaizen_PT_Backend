@@ -36,18 +36,14 @@ if not SUPABASE_JWT_SECRET:
     raise Exception("SUPABASE_JWT_SECRET environment variable must be set for JWT validation")
 
 def get_current_user(authorization: str = Header(...)):
-    """
-    Dependency that extracts and verifies the Supabase JWT token from the Authorization header.
-    Returns the decoded token payload (user info) if valid.
-    """
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token header")
     token = authorization[len("Bearer "):]
     try:
-        # Decode and verify the JWT token using the Supabase secret.
         payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"])
         return payload
-    except jwt.PyJWTError:
+    except Exception as e:
+        print("JWT decode error:", e)  # Temporary debug logging
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 @app.get("/auth/me")
