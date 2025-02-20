@@ -40,11 +40,17 @@ def get_current_user(authorization: str = Header(...)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token header")
     token = authorization[len("Bearer "):]
     try:
-        payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=["HS256"])
+        payload = jwt.decode(
+            token,
+            SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            options={"verify_aud": False}  # disable audience verification
+        )
         return payload
     except Exception as e:
-        print("JWT decode error:", e)  # Temporary debug logging
+        print("JWT decode error:", e)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
 
 @app.get("/auth/me")
 def read_users_me(current_user: dict = Depends(get_current_user)):
