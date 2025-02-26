@@ -11,46 +11,86 @@ load_dotenv()
 os.environ.pop('HTTP_PROXY', None)
 os.environ.pop('HTTPS_PROXY', None)
 
-def generate_exercises(patient_data: Dict, num_exercises: int) -> Dict:
+def generate_recovery_plan(patient_data, injuries):
     """
-    Generate exercise recommendations using Anthropic's API.
+    Generate a personalized recovery plan using Anthropic's API.
+    This creates a weekly schedule of exercises based on the patient's injuries.
     """
     anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
     if not anthropic_api_key:
-        print("Error: ANTHROPIC_API_KEY not set")
-        return {}
-
+        raise ValueError("ANTHROPIC_API_KEY environment variable not set")
+        
     # Initialize the client with the API key
     client = Anthropic(api_key=anthropic_api_key)
+    
+    # Format the injuries data for the prompt
+    injuries_text = []
+    for i, injury in enumerate(injuries):
+        injuries_text.append(f"""
+Injury {i+1}:
+- Body Part: {injury.get('body_part')}
+- Description: {injury.get('hurting_description')}
+- Diagnosis: {injury.get('diagnosis')}
+- Pain Levels: Best={injury.get('severity_best')}, Worst={injury.get('severity_worst')}, Daily Avg={injury.get('severity_daily_avg')}
+- Stage: {injury.get('stage')}
+        """)
+    
+    injuries_description = "\n".join(injuries_text)
     
     try:
         message = client.messages.create(
             model="claude-3-5-sonnet-20241022",
             max_tokens=8192,
-            system=f"""You are an expert physical therapy assistant...
-Generate exactly {num_exercises} exercises.
-Format all responses as a JSON object.""",
+            system="""You are an expert physical therapist creating personalized recovery plans.
+            
+For each day of the week, recommend appropriate exercises based on the patient's injuries and condition.
+Format your response as a JSON object with the days of the week as keys.
+Each day should have an array of exercise objects with the following properties:
+- name: The name of the exercise
+- sets: Number of sets
+- reps: Number of repetitions
+- description: Brief instructions for performing the exercise
+- purpose: What this exercise helps with
+
+Include rest days as appropriate. If certain days should focus on different body parts or aspects of recovery, organize them accordingly.
+            """,
             messages=[{
                 "role": "user",
-                "content": f"""Generate a set of targeted exercises for this patient:
-Age: {patient_data.get('age')}
-Injury Location: {patient_data.get('injury_location')}
-Pain Level: {patient_data.get('pain_level')}/10
-Mobility Status: {patient_data.get('mobility_status')}
-Medical History: {patient_data.get('medical_history')}
-Activity Level: {patient_data.get('activity_level')}
-Goals: {patient_data.get('goals')}
-Provide output in the specified JSON format."""
+                "content": f"""Create a personalized weekly recovery plan for a patient with the following profile:
+
+Patient Information:
+- Age: {patient_data.get('age', 'Unknown')}
+- Activity Level: {patient_data.get('activity_level', 'Unknown')}
+- Goals: {patient_data.get('goals', 'Recovery')}
+
+Injuries:
+{injuries_description}
+
+Please create a structured weekly exercise schedule that addresses all injuries while allowing for proper recovery.
+Include a variety of exercises including stretching, strengthening, and mobility work as appropriate.
+Format the response as a JSON object."""
             }]
         )
-        # Parse the returned content as JSON
         content = message.content[0].text if isinstance(message.content, list) else message.content
-        parsed = json.loads(content)
-        return parsed
+        
+        # Use regex to extract JSON from the response (in case extra text is included)
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', content)
+        if json_match:
+            json_str = json_match.group(0)
+            return json.loads(json_str)
+        else:
+            return {
+                "error": "Failed to generate recovery plan",
+                "message": "Could not parse the AI response"
+            }
 
     except Exception as e:
-        print(f"Anthropic API error in generate_exercises: {e}")
-        return {}
+        print(f"Anthropic API error (generate_recovery_plan): {e}")
+        return {
+            "error": "Failed to generate recovery plan",
+            "message": f"API Error: {str(e)}"
+        }
 
 def generate_diagnosis(injury_data: Dict) -> Dict:
     """

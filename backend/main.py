@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict
 from models import PatientCreate, PatientUpdate, ExerciseRecommendationsRequest, InjuryQuestionnaire
 from utils import load_patients, save_patients, create_weekly_schedule
-from services import generate_exercises, generate_diagnosis
+from services import generate_recovery_plan, generate_diagnosis
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -119,27 +119,43 @@ def delete_patient(patient_name: str):
 # ----------------------------
 # Exercise and Schedule Endpoints
 # ----------------------------
-@app.post("/generate_exercises")
-def generate_patient_exercises(request: ExerciseRecommendationsRequest):
+@app.post("/patients/{patient_name}/generate_recovery_plan")
+async def create_recovery_plan(
+    patient_name: str,
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Generate exercise recommendations using Anthropic's API.
-    This method is a placeholder for exercise generation logic.
-    Future expansion might include additional exercise filtering and personalization.
+    Generate a personalized recovery plan for a patient based on their injuries.
     """
-    patient_name = request.patient_name
-    num_exercises = request.num_exercises
-
-    if patient_name not in patients_db:
+    user_email = current_user.get("email")
+    if not user_email:
+        raise HTTPException(status_code=400, detail="User email not found in token")
+    
+    # Use the authenticated user's email as the patient identifier
+    patient_identifier = user_email
+    print(f"Generating recovery plan for patient: {patient_identifier}", flush=True)
+    
+    if patient_identifier not in patients_db:
         raise HTTPException(status_code=404, detail="Patient not found")
-
-    patient_data = patients_db[patient_name]
-    recommendations = generate_exercises(patient_data, num_exercises)
-    if not recommendations:
-        raise HTTPException(status_code=500, detail="Failed to generate exercises")
-
-    patients_db[patient_name]["recommendations"] = recommendations
-    save_patients(patients_db)
-    return recommendations
+    
+    patient_data = patients_db[patient_identifier]
+    injuries = patient_data.get("injuries", [])
+    
+    if not injuries:
+        raise HTTPException(status_code=400, detail="No injuries found for this patient. Please add injury information first.")
+    
+    try:
+        recovery_plan = generate_recovery_plan(patient_data, injuries)
+        
+        # Save the generated plan to the patient's data
+        patients_db[patient_identifier]["weekly_schedule"] = recovery_plan
+        save_database()
+        
+        return recovery_plan
+    except Exception as e:
+        error_message = f"Error generating recovery plan: {str(e)}"
+        print(error_message, flush=True)
+        raise HTTPException(status_code=500, detail=error_message)
 
 @app.get("/weekly_schedule/{patient_name}")
 def get_weekly_schedule(patient_name: str):
@@ -175,6 +191,27 @@ def get_overall_pt_schedule():
     schedule = generate_pt_weekly_schedule(patients_db)
     return schedule
 
+@app.get("/patients/{patient_name}/injuries")
+async def get_patient_injuries(
+    patient_name: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Retrieve all injuries for a specific patient.
+    """
+    user_email = current_user.get("email")
+    if not user_email:
+        raise HTTPException(status_code=400, detail="User email not found in token")
+    
+    # Use the authenticated user's email as the patient identifier
+    patient_identifier = user_email
+    
+    if patient_identifier not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    # Return the injuries array for this patient
+    return patients_db[patient_identifier].get("injuries", [])
+
 # ----------------------------
 # Injury Questionnaire Endpoint
 # ----------------------------
@@ -209,12 +246,40 @@ async def add_injury_questionnaire(
         
         injury_data.update(diagnosis_result)
         patients_db[patient_identifier]["injuries"].append(injury_data)
+        
+        # Save the updated database to disk
+        save_database()
+        
         return diagnosis_result
 
     except Exception as e:
         error_message = f"Error during diagnosis generation: {str(e)}"
         print(error_message, flush=True)
         raise HTTPException(status_code=500, detail=error_message)
+
+@app.get("/patients/{patient_name}/injuries")
+async def get_patient_injuries(
+    patient_name: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Retrieve all injuries for a specific patient.
+    """
+    user_email = current_user.get("email")
+    if not user_email:
+        raise HTTPException(status_code=400, detail="User email not found in token")
+    
+    # Use the authenticated user's email as the patient identifier
+    patient_identifier = user_email
+    print(f"Retrieving injuries for patient: {patient_identifier}", flush=True)
+    
+    if patient_identifier not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    # Return the injuries array for this patient
+    injuries = patients_db[patient_identifier].get("injuries", [])
+    print(f"Found {len(injuries)} injuries for patient", flush=True)
+    return injuries
 
 # ----------------------------
 # Helper Functions for Database Persistence
