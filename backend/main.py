@@ -116,6 +116,39 @@ def delete_patient(patient_name: str):
     save_patients(patients_db)
     return {"message": f"Patient '{patient_name}' has been deleted."}
 
+@app.delete("/patients/{patient_name}/injuries/{injury_index}")
+async def delete_patient_injury(
+    patient_name: str,
+    injury_index: int,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Delete a specific injury for a patient.
+    """
+    user_email = current_user.get("email")
+    if not user_email:
+        raise HTTPException(status_code=400, detail="User email not found in token")
+    
+    # Use the authenticated user's email as the patient identifier
+    patient_identifier = user_email
+    print(f"Deleting injury index {injury_index} for patient: {patient_identifier}", flush=True)
+    
+    if patient_identifier not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    injuries = patients_db[patient_identifier].get("injuries", [])
+    
+    if not injuries or injury_index < 0 or injury_index >= len(injuries):
+        raise HTTPException(status_code=404, detail=f"Injury with index {injury_index} not found")
+    
+    # Remove the injury at the specified index
+    deleted_injury = injuries.pop(injury_index)
+    
+    # Save the updated database to disk
+    save_database()
+    
+    return {"message": f"Injury deleted successfully", "deleted_injury": deleted_injury}
+
 # ----------------------------
 # Exercise and Schedule Endpoints
 # ----------------------------
@@ -306,3 +339,4 @@ except Exception as e:
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
