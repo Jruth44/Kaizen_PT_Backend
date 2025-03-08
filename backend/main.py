@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from typing import List, Dict
 from models import PatientCreate, PatientUpdate, InjuryQuestionnaire
 from utils import create_weekly_schedule
-from services import generate_recovery_plan, generate_diagnosis
+from services import generate_recovery_plan, generate_diagnosis, chat_with_pt, create_pt_system_prompt
 from dotenv import load_dotenv
 import asyncio
 
