@@ -2,13 +2,15 @@ import os
 import json
 import uvicorn
 import jwt
-from fastapi import FastAPI, HTTPException, Depends, Header, status
+from fastapi import FastAPI, HTTPException, Depends, Body, Request, Header, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from typing import List, Dict
 from models import PatientCreate, PatientUpdate, InjuryQuestionnaire
 from utils import create_weekly_schedule
 from services import generate_recovery_plan, generate_diagnosis
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 
@@ -221,6 +223,46 @@ async def create_recovery_plan(
         error_message = f"Error generating recovery plan: {str(e)}"
         print(error_message, flush=True)
         raise HTTPException(status_code=500, detail=error_message)
+    
+@app.post("/chat_with_pt")
+async def chat_with_pt_endpoint(
+    request: Request,
+    payload: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Chat with Claude as a PT assistant in a streaming response.
+    
+    This endpoint uses Server-Sent Events (SSE) to stream the response
+    from Claude back to the frontend.
+    """
+    if not payload or not isinstance(payload.get("messages"), list):
+        raise HTTPException(status_code=400, detail="Invalid messages format")
+    
+    user_email = current_user.get("email")
+    if not user_email:
+        raise HTTPException(status_code=400, detail="User email not found in token")
+    
+    try:
+        # Get the messages from the request
+        messages = payload["messages"]
+        
+        # Create the streaming response
+        async def generate():
+            async for text_chunk in chat_with_pt(messages):
+                yield text_chunk
+        
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream"
+        )
+    
+    except Exception as e:
+        print(f"Chat with PT error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error communicating with AI: {str(e)}"
+        )
 
 # ----------------------------
 # Helper Functions for Database Persistence
