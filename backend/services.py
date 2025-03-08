@@ -39,7 +39,7 @@ Injury {i+1}:
     
     try:
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-7-sonnet-20250219",
             max_tokens=8192,
             system="""You are an expert physical therapist creating personalized recovery plans.
             
@@ -115,7 +115,7 @@ def generate_diagnosis(injury_data: Dict) -> Dict:
     """
     try:
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-7-sonnet-20250219",
             max_tokens=8192,
             messages=[{
                 "role": "user",
