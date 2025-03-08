@@ -247,6 +247,19 @@ async def chat_with_pt_endpoint(
         # Get the messages from the request
         messages = payload["messages"]
         
+        # Get user context
+        patient_identifier = user_email
+        patient_data = patients_db.get(patient_identifier, {})
+        injuries = patient_data.get("injuries", [])
+        recovery_plan = patient_data.get("weekly_schedule", {})
+        
+        # Create system prompt with user context
+        system_prompt = create_pt_system_prompt(injuries, recovery_plan)
+        
+        # Prepend system message
+        if messages and messages[0].get("role") != "system":
+            messages = [{"role": "system", "content": system_prompt}] + messages
+        
         # Create the streaming response
         async def generate():
             async for text_chunk in chat_with_pt(messages):

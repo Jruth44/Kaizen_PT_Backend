@@ -177,11 +177,22 @@ async def chat_with_pt(messages: List[Dict]) -> AsyncGenerator[str, None]:
     client = Anthropic(api_key=anthropic_api_key)
     
     try:
+        # Extract user email from the JWT token in the request
+        # This would come from the current_user in the API endpoint
+        
+        # Create system prompt with user context
+        system_prompt = """You are a helpful and knowledgeable physical therapist assistant, providing guidance and advice about injuries, exercises, and physical recovery.
+
+Provide concise, helpful answers about physical therapy, exercises, and recovery. Don't suggest medical diagnoses, but you can explain potential causes of symptoms. If you don't know something, be honest about it. Always prioritize safety and recommend consulting a healthcare provider for serious concerns."""
+
+        # Prepend system message
+        full_messages = [{"role": "system", "content": system_prompt}] + messages
+        
         # Use the streaming API
         async with client.messages.stream(
             model="claude-3-7-sonnet-20250219",
             max_tokens=4000,
-            messages=messages,
+            messages=full_messages,
             temperature=0.7,
         ) as stream:
             # Stream each chunk of the response
