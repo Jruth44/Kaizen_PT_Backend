@@ -260,10 +260,11 @@ async def chat_with_pt_endpoint(
         if messages and messages[0].get("role") != "system":
             messages = [{"role": "system", "content": system_prompt}] + messages
         
-        # Create the streaming response
+        # Create the streaming response with proper SSE formatting
         async def generate():
             async for text_chunk in chat_with_pt(messages):
-                yield text_chunk
+                # Format as proper SSE event with data prefix and double newline
+                yield f"data: {text_chunk}\n\n"
         
         return StreamingResponse(
             generate(),
