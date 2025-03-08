@@ -5,7 +5,7 @@ import jwt
 from fastapi import FastAPI, HTTPException, Depends, Body, Request, Header, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from typing import List, Dict
+from typing import List, Dict, Any
 from models import PatientCreate, PatientUpdate, InjuryQuestionnaire
 from utils import create_weekly_schedule
 from services import generate_recovery_plan, generate_diagnosis, chat_with_pt, create_pt_system_prompt
